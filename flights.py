@@ -40,7 +40,7 @@ for i in range(t, t + m+1):
 	chrome_options.add_argument("--headless")
 	
     # setting path to chromedriver to drive selenium code
-	driver = webdriver.Chrome(executable_path = '/home/abu/Documents/chrome_tools/chromedriver.exe',
+	driver = webdriver.Chrome(executable_path = '/home/abu/Documents/flights_web_scrape/Flight-Ticket-Web-Scraping/chrome_tools/chromedriver.exe',
 							options=chrome_options)
 	
 	driver.implicitly_wait(15) # for consistency, waiting for elements to load
