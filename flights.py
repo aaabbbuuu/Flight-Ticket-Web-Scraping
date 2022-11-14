@@ -63,3 +63,32 @@ for i in data:
 	low_price += str(i) + ": Rs." + str(data[i]) + "\n"
 	
 print(low_price)
+
+# Email notification set up
+if len(data) != 0:
+	
+	dp = 2000
+	server = smtplib.SMTP('smtp.gmail.com',587)
+	server.ehlo()
+	server.starttls()
+	server.ehlo()
+	
+	server.login('abu.t.hassan@gmail.com','') #password left blank for github
+	subject = "Flight price for LHE-ATL has fallen\
+	below $" + str(dp) 
+	
+	body = "Hey Abu! \n The price of LHE-ATL on SkyScanner \
+	has fallen down below $" + str(dp) + ".\n So,\
+	go and check: " + url_final+"\n\n\n The prices of\
+	flight below $2000 for the following days are\
+	:\n\n" + low_price
+	
+	msg = f"Subject: {subject} \n\n {body}"
+	
+	server.sendmail(
+		'abu.t.hassan@gmail.com',		
+		msg
+		)
+	
+	print("EMAIL SENT SUCCESSFULLY.")	
+	server.quit()
