@@ -1,94 +1,113 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import DriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.keys import Keys
-
+import logging
+import configparser
 import smtplib
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# Dates in this format yyyy/mm/dd
-x = "2022-12-10"
-y = "2022-12-23"
+# Configuring logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-a = int(x[8:10])
-b = int(y[8:10])
+# Read configuration from file
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-if a > b:
-	m = a - b
-	t = b
+# Extracting configuration values
+start_date = config['FLIGHTS']['START_DATE']
+end_date = config['FLIGHTS']['END_DATE']
+price_threshold = int(config['FLIGHTS']['PRICE_THRESHOLD'])
+email = config['EMAIL']['ADDRESS']
+password = config['EMAIL']['PASSWORD']
 
-else:
-	m = b - a
-	t = a
-print(t)
+def setup_webdriver():
+    """Sets up the Selenium WebDriver with Chrome options."""
+    chrome_options = Options()
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--headless")
+    try:
+        driver = webdriver.Chrome(executable_path='D:\Abu Hassan\Documents\ChromeDriver\chromedriver.exe', options=chrome_options)
+        return driver
+    except WebDriverException as e:
+        logging.error(f"Error setting up WebDriver: {e}")
+        return None
 
-low_price = ""
-url_final = 'https://www.skyscanner.com/flights'
-data = {}
+def scrape_flight_prices(driver, start_date, end_date):
+    """Scrapes flight prices for the given date range."""
+    url = 'https://www.example-flight-booking-website.com'
+    driver.get(url)
 
-for i in range(t, t + m+1):
-	url = 'https://www.skyscanner.com/transport/flights/lhe/atla/221210/221223/?adults=1&adultsv2=1&cabinclass=economy&children=0&childrenv2=&destinationentityid=27541735&inboundaltsenabled=false&infants=0&originentityid=27544055&outboundaltsenabled=true&preferdirects=false&ref=home&rtn=1'+str(i)
+    # Wait for the search page to load
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "some-search-box-id"))
+    )
 
-	#print(url)	
-	date = "2022-12-" + str(i)
-	
-	# enables the script to run without opening browser	(this is unattended mode)
-	chrome_options = Options()
-	chrome_options.add_argument("--disable-gpu")
-	chrome_options.add_argument("--headless")
-	
-    # setting path to chromedriver to drive selenium code
-	driver = webdriver.Chrome(executable_path = '/home/abu/Documents/flights_web_scrape/Flight-Ticket-Web-Scraping/chrome_tools/chromedriver.exe',
-							options=chrome_options)
-	
-	driver.implicitly_wait(15) # for consistency, waiting for elements to load
-	driver.get(url)
-	
-	g = driver.find_element_by_xpath("//*[@id=\"flights-search-controls-root\"]/div/div/form/div[3]/button")
-	price = g.text
-	
-	x = price[0]
-	y = price[2:5]
-	z = str(x)+str(y)
-	p = int(z)
-	print(p)
-	
-	prices=[]
-	if p <= 2000:
-		data[date] = p
-		
-for i in data:
-	low_price += str(i) + ": Rs." + str(data[i]) + "\n"
-	
-print(low_price)
+    # Find and fill the departure and arrival fields, dates, etc.
+    departure_field = driver.find_element(By.ID, 'departure-field-id')
+    departure_field.clear()
+    departure_field.send_keys('LHE')  # Example departure airport code
 
-# Email notification set up
-if len(data) != 0:
-	
-	dp = 2000
-	server = smtplib.SMTP('smtp.gmail.com',587)
-	server.ehlo()
-	server.starttls()
-	server.ehlo()
-	
-	server.login('abu.t.hassan@gmail.com','') #password left blank for github
-	subject = "Flight price for LHE-ATL has fallen\
-	below $" + str(dp) 
-	
-	body = "Hey Abu! \n The price of LHE-ATL on SkyScanner \
-	has fallen down below $" + str(dp) + ".\n So,\
-	go and check: " + url_final+"\n\n\n The prices of\
-	flight below $2000 for the following days are\
-	:\n\n" + low_price
-	
-	msg = f"Subject: {subject} \n\n {body}"
-	
-	server.sendmail(
-		'abu.t.hassan@gmail.com',		
-		msg
-		)
-	
-	print("EMAIL SENT SUCCESSFULLY.")	
-	server.quit()
+    arrival_field = driver.find_element(By.ID, 'arrival-field-id')
+    arrival_field.clear()
+    arrival_field.send_keys('ATL')  # Example arrival airport code
+
+    # Similarly, find and fill the date fields
+    # Note: Date selection will depend on how the website handles date inputs
+
+    # Submit the search
+    search_button = driver.find_element(By.ID, 'search-button-id')
+    search_button.click()
+
+    # Wait for search results to load
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "result-class-name"))
+    )
+
+    # Extract flight prices
+    prices = driver.find_elements(By.CLASS_NAME, 'price-class-name')
+    flight_prices = [price.text for price in prices]
+
+    return flight_prices
+
+def send_email_alert(email, password, message):
+    """Sends an email alert with the given message."""
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(email, password)
+        server.sendmail(email, email, message)
+        server.quit()
+        logging.info("Email sent successfully.")
+    except Exception as e:
+        logging.error(f"Error sending email: {e}")
+
+def main():
+    driver = setup_webdriver()
+    if driver:
+        try:
+            # Scrape flight prices for the configured date range
+            flight_prices = scrape_flight_prices(driver, start_date, end_date)
+
+            # Check if any scraped prices are below the threshold
+            for price in flight_prices:
+                # Assuming prices are returned as strings like "$500"
+                numeric_price = int(price.replace('$', ''))
+                if numeric_price <= price_threshold:
+                    logging.info(f"Low price found: {price}")
+                    message = f"Alert: Flight price dropped to {price}!"
+                    send_email_alert(email, password, message)
+                    break
+            else:
+                logging.info("No prices below the threshold were found.")
+
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+        finally:
+            driver.quit()
+    else:
+        logging.error("WebDriver setup failed. Exiting.")
+
+if __name__ == "__main__":
+    main()
