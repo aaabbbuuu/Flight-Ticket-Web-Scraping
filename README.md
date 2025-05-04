@@ -1,46 +1,106 @@
-# Flight-Ticket-Web-Scraping
+# ✈️ Flight Price Tracker
 
-# Overview
+This Python-based tool tracks flight prices between two airports over a given date range and sends you an email alert if the price drops below your configured threshold.
 
-This repository contains a Python script for web scraping flight ticket prices. It is designed for flexibility and requires some code changes in order to work. The script includes configurable parameters and an email alert feature for price drops.
+## 🚀 Features
 
-# Contents
-- README.md: This file, providing an overview and instructions.
-- flights.py: The main Python script for scraping flight prices and sending email alerts.
-- config.ini: Configuration file to set parameters like dates, price threshold, and email credentials.
+- ✅ Headless flight price scraping using Selenium
+- ✅ Dynamic ChromeDriver setup via `webdriver-manager`
+- ✅ Secure credential management with `.env` file
+- ✅ Email alerts for flight deals
+- ✅ Configurable via `config.ini`
 
-# Features
+---
 
-- Configurable Parameters: Easily adjust flight dates, destinations, and price thresholds in the config.ini file.
-- Robust Web Scraping: Uses Selenium WebDriver for dynamic web scraping.
-- Error Handling and Logging: Improved error handling and logging for better debugging and reliability.
-- Email Alerts: Sends notifications when flight prices fall below a set threshold.
+## ⚙️ Configuration
 
-# Usage
+### 1. `config.ini`
 
-- Setup: Install Python, Selenium, and other dependencies.
-- Configuration: Edit config.ini with your desired parameters, as well as code changes for flights.py.
-- Execution: Run flights.py to start scraping. Email alerts are sent if conditions are met.
+Copy the example config and customize it:
 
-# Getting Started
+```bash
+cp config.ini.example config.ini
+```
 
-Clone the repository
-git clone https://github.com/aaabbbuuu/Flight-Ticket-Web-Scraping.git
-To get started with this project, clone the repository and install the necessary dependencies. Ensure you have Python and Selenium WebDriver installed on your system.
+```ini
+[FLIGHTS]
+START_DATE=2025-12-20
+END_DATE=2025-12-30
+PRICE_THRESHOLD=600
+DEPARTURE=LHE
+ARRIVAL=ATL
+```
 
-Navigate to the repository directory
-cd Flight-Ticket-Web-Scraping
+### 2. `.env`
 
-Install dependencies
-pip install selenium
+Store your email credentials securely:
 
-Run the script
-python flights.py
+```bash
+cp .env.example .env
+```
 
-# License
+```env
+FLIGHT_ALERT_EMAIL=youremail@gmail.com
+FLIGHT_ALERT_PASSWORD=yourpassword
+```
 
-This project is open-sourced under the MIT License.
+> ✅ Use **App Passwords** instead of your real password for Gmail if 2FA is enabled.
 
-# Contact
+---
 
-For any queries or suggestions, feel free to open an issue in the repository or contact me directly abu.t.hassan@gmail.com.
+## 🧪 Requirements
+
+Install dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
+
+Dependencies:
+- `selenium`
+- `webdriver-manager`
+- `python-dotenv`
+
+---
+
+## 🛠️ How to Run
+
+```bash
+python flight_tracker.py
+```
+
+Make sure `config.ini` and `.env` are present in the same folder.
+
+---
+
+## 🧹 .gitignore
+
+Recommended `.gitignore`:
+
+```gitignore
+.env
+*.pyc
+__pycache__/
+chromedriver.log
+```
+
+---
+
+## 📦 Optional Enhancements
+
+- [ ] Add Dockerfile for containerized execution
+- [ ] GitHub Action for scheduled price checks
+- [ ] CLI mode with `argparse`
+- [ ] CSV export of results
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! Open issues or suggest features in the [Issues](https://github.com/yourname/flight-price-tracker/issues) tab.
+
+---
+
+## 📄 License
+
+MIT © [Your Name](https://github.com/yourname)
