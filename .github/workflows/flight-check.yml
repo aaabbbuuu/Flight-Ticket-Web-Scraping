@@ -1,0 +1,54 @@
+name: Scheduled Flight Price Check
+
+on:
+  schedule:
+    # Runs every 6 hours
+    - cron: "0 */6 * * *"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-prices:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create config files
+        run: |
+          cat > config.ini << EOF
+          [FLIGHTS]
+          START_DATE=${{ vars.START_DATE }}
+          END_DATE=${{ vars.END_DATE }}
+          PRICE_THRESHOLD=${{ vars.PRICE_THRESHOLD }}
+          DEPARTURE=${{ vars.DEPARTURE }}
+          ARRIVAL=${{ vars.ARRIVAL }}
+          EOF
+
+          cat > .env << EOF
+          FLIGHT_ALERT_EMAIL=${{ secrets.FLIGHT_ALERT_EMAIL }}
+          FLIGHT_ALERT_PASSWORD=${{ secrets.FLIGHT_ALERT_PASSWORD }}
+          EOF
+
+      - name: Run flight tracker
+        run: python -m flight_tracker --export-csv --verbose
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flight-prices-${{ github.run_number }}
+          path: results/
+          retention-days: 30

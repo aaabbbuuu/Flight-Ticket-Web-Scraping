@@ -1,26 +1,50 @@
 # ✈️ Flight Price Tracker
 
-This Python-based tool tracks flight prices between two airports over a given date range and sends you an email alert if the price drops below your configured threshold.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Scheduled Check](https://img.shields.io/badge/CI-GitHub%20Actions-orange.svg)](.github/workflows/flight-check.yml)
 
-## 🚀 Features
+A Python CLI tool that scrapes flight prices using headless Chrome and sends you an email alert when a deal drops below your threshold. Run it locally, in Docker, or on a schedule via GitHub Actions.
 
-- ✅ Headless flight price scraping using Selenium
-- ✅ Dynamic ChromeDriver setup via `webdriver-manager`
-- ✅ Secure credential management with `.env` file
-- ✅ Email alerts for flight deals
-- ✅ Configurable via `config.ini`
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  config.ini  │────▶│   Selenium   │────▶│  Price Check  │────▶│  Email Alert │
+│    + .env    │     │  (headless)  │     │  & CSV Export │     │  (Gmail SMTP)│
+└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+```
 
----
+## Features
 
-## ⚙️ Configuration
+- Headless browser scraping with Selenium + auto-managed ChromeDriver
+- Configurable search parameters (airports, dates, price threshold)
+- Email alerts via Gmail SMTP when prices drop below threshold
+- CSV export of scraped results
+- `--dry-run` mode to validate config without scraping
+- Docker support for containerized execution
+- GitHub Actions workflow for automated scheduled checks
+- Modular package structure with full type hints
 
-### 1. `config.ini`
-
-Copy the example config and customize it:
+## Quick Start
 
 ```bash
-cp config.ini.example config.ini
+# Clone
+git clone https://github.com/yourname/flight-price-tracker.git
+cd flight-price-tracker
+
+# Install
+pip install -r requirements.txt
+
+# Configure
+cp config.ini.example config.ini   # edit flight search params
+cp .env.example .env               # set email credentials
+
+# Run
+python -m flight_tracker
 ```
+
+## Configuration
+
+### `config.ini`
 
 ```ini
 [FLIGHTS]
@@ -31,92 +55,115 @@ DEPARTURE=LHE
 ARRIVAL=ATL
 ```
 
-### 2. `.env`
-
-Store your email credentials securely. This file is used for sending email alerts.
-
-```bash
-cp .env.example .env
-```
+### `.env`
 
 ```env
-FLIGHT_ALERT_EMAIL=youremail@gmail.com
-FLIGHT_ALERT_PASSWORD=yourpassword
+FLIGHT_ALERT_EMAIL=you@gmail.com
+FLIGHT_ALERT_PASSWORD=your-app-password
 ```
 
-> ✅ Use **App Passwords** instead of your real password for Gmail if 2FA is enabled.
+> Gmail users with 2FA enabled must use an [App Password](https://support.google.com/accounts/answer/185833), not their account password.
 
----
-
-## 🧪 Requirements
-
-Install dependencies with:
+## Usage
 
 ```bash
-pip install -r requirements.txt
+# Standard run
+python -m flight_tracker
+
+# Validate config without scraping
+python -m flight_tracker --dry-run
+
+# Export results to CSV
+python -m flight_tracker --export-csv
+
+# Verbose logging
+python -m flight_tracker --verbose
+
+# Custom config paths
+python -m flight_tracker --config /path/to/config.ini --env /path/to/.env
+
+# Show version
+python -m flight_tracker --version
 ```
 
-Dependencies:
-- `selenium`
-- `webdriver-manager`
-- `python-dotenv`
-
----
-
-## 🛠️ How to Run
+## Docker
 
 ```bash
-python flight_tracker.py
+# Build
+docker build -t flight-tracker .
+
+# Run (mount your config files)
+docker run --rm \
+  -v $(pwd)/config.ini:/app/config.ini \
+  -v $(pwd)/.env:/app/.env \
+  flight-tracker --export-csv
 ```
 
-Make sure `config.ini` and `.env` are present in the same folder.
+## GitHub Actions (Scheduled Checks)
 
----
+The included workflow (`.github/workflows/flight-check.yml`) runs every 6 hours and can also be triggered manually.
 
-## ⚠️ Important: Web Scraping Adaptation Required
+### Setup
 
-The core web scraping logic in `flight_tracker.py` (specifically the `scrape_flight_prices` function and associated constants like `FLIGHT_SEARCH_URL`, `DEPARTURE_FIELD_ID`, etc.) uses **placeholder values**. 
+1. Go to your repo's **Settings → Secrets and variables → Actions**
+2. Add these **secrets**:
+   - `FLIGHT_ALERT_EMAIL` — your Gmail address
+   - `FLIGHT_ALERT_PASSWORD` — your Gmail App Password
+3. Add these **variables**:
+   - `START_DATE` — e.g. `2025-12-20`
+   - `END_DATE` — e.g. `2025-12-30`
+   - `PRICE_THRESHOLD` — e.g. `600`
+   - `DEPARTURE` — e.g. `LHE`
+   - `ARRIVAL` — e.g. `ATL`
 
-**You MUST adapt these placeholders to target a specific flight booking website.** This involves:
-1.  Identifying a suitable flight booking website.
-2.  Inspecting the website's HTML structure to find the correct CSS selectors (IDs, classes, etc.) for:
-    *   Departure and arrival input fields.
-    *   Date pickers and how to interact with them.
-    *   The search button.
-    *   The elements containing flight price information after a search.
-    *   Elements to wait for to ensure pages/results are loaded.
-3.  Updating the constants (e.g., `FLIGHT_SEARCH_URL`, `DEPARTURE_FIELD_ID`) and the interaction logic within `scrape_flight_prices` in `flight_tracker.py` accordingly.
+Results are uploaded as build artifacts and retained for 30 days.
 
-Without these modifications, the script will not be able to retrieve actual flight prices.
+## Project Structure
 
-## 🧹 .gitignore
-
-Recommended `.gitignore`:
-
-```gitignore
-.env
-*.pyc
-__pycache__/
-chromedriver.log
+```
+flight-price-tracker/
+├── flight_tracker/          # Main package
+│   ├── __init__.py          # Version
+│   ├── __main__.py          # python -m entry point
+│   ├── cli.py               # Argument parsing & orchestration
+│   ├── config.py            # Config loading (INI + .env)
+│   ├── scraper.py           # Selenium scraping logic
+│   ├── alerts.py            # Email alert delivery
+│   └── export.py            # CSV export
+├── tests/                   # Test suite
+│   ├── test_config.py
+│   ├── test_scraper.py
+│   └── test_export.py
+├── .github/workflows/
+│   └── flight-check.yml     # Scheduled GitHub Action
+├── config.ini.example       # Template for flight params
+├── .env.example             # Template for email creds
+├── Dockerfile
+├── pyproject.toml
+├── requirements.txt
+├── requirements-dev.txt
+└── flight_tracker.py        # Legacy single-file entry point
 ```
 
----
+## Adapting the Scraper
 
-## 📦 Optional Enhancements
+The scraping logic in `flight_tracker/scraper.py` uses placeholder selectors. To use this with a real flight booking site:
 
-- [ ] Add Dockerfile for containerized execution
-- [ ] GitHub Action for scheduled price checks
-- [ ] CLI mode with `argparse`
-- [ ] CSV export of results
+1. Update `FLIGHT_SEARCH_URL` with the target URL
+2. Inspect the site's HTML and update the `*_ID` / `*_CLASS` constants with real selectors
+3. Implement date-picker interaction in `scrape_flight_prices()` (marked with `FIXME`)
 
----
+## Running Tests
 
-## 🤝 Contributing
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
 
-Pull requests are welcome! Open issues or suggest features in the [Issues](https://github.com/yourname/flight-price-tracker/issues) tab.
+## Contributing
 
----
+PRs welcome. Please open an issue first to discuss what you'd like to change.
 
-## 📄 License
+## License
 
-MIT © [Your Name](https://github.com/yourname)
+[MIT](LICENSE)
