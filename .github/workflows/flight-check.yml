@@ -2,9 +2,8 @@ name: Scheduled Flight Price Check
 
 on:
   schedule:
-    # Runs every 6 hours
     - cron: "0 */6 * * *"
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   check-prices:
@@ -26,21 +25,54 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Validate required configuration
+        run: |
+          missing=0
+          for var_name in START_DATE END_DATE PRICE_THRESHOLD DEPARTURE ARRIVAL; do
+            val="${!var_name}"
+            if [ -z "$val" ]; then
+              echo "::error::Repository variable $var_name is not set."
+              missing=1
+            fi
+          done
+          if [ -z "$EMAIL" ] || [ -z "$PASSWORD" ]; then
+            echo "::error::Secrets FLIGHT_ALERT_EMAIL and/or FLIGHT_ALERT_PASSWORD are not set."
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo ""
+            echo "Configure in Settings > Secrets and variables > Actions:"
+            echo "  Secrets:   FLIGHT_ALERT_EMAIL, FLIGHT_ALERT_PASSWORD"
+            echo "  Variables: START_DATE, END_DATE, PRICE_THRESHOLD, DEPARTURE, ARRIVAL"
+            exit 1
+          fi
+        env:
+          START_DATE: ${{ vars.START_DATE }}
+          END_DATE: ${{ vars.END_DATE }}
+          PRICE_THRESHOLD: ${{ vars.PRICE_THRESHOLD }}
+          DEPARTURE: ${{ vars.DEPARTURE }}
+          ARRIVAL: ${{ vars.ARRIVAL }}
+          EMAIL: ${{ secrets.FLIGHT_ALERT_EMAIL }}
+          PASSWORD: ${{ secrets.FLIGHT_ALERT_PASSWORD }}
+
       - name: Create config files
         run: |
-          cat > config.ini << EOF
-          [FLIGHTS]
-          START_DATE=${{ vars.START_DATE }}
-          END_DATE=${{ vars.END_DATE }}
-          PRICE_THRESHOLD=${{ vars.PRICE_THRESHOLD }}
-          DEPARTURE=${{ vars.DEPARTURE }}
-          ARRIVAL=${{ vars.ARRIVAL }}
-          EOF
-
-          cat > .env << EOF
-          FLIGHT_ALERT_EMAIL=${{ secrets.FLIGHT_ALERT_EMAIL }}
-          FLIGHT_ALERT_PASSWORD=${{ secrets.FLIGHT_ALERT_PASSWORD }}
-          EOF
+          printf '[FLIGHTS]\n' > config.ini
+          printf 'START_DATE=%s\n' "$START_DATE" >> config.ini
+          printf 'END_DATE=%s\n' "$END_DATE" >> config.ini
+          printf 'PRICE_THRESHOLD=%s\n' "$PRICE_THRESHOLD" >> config.ini
+          printf 'DEPARTURE=%s\n' "$DEPARTURE" >> config.ini
+          printf 'ARRIVAL=%s\n' "$ARRIVAL" >> config.ini
+          printf 'FLIGHT_ALERT_EMAIL=%s\n' "$EMAIL" > .env
+          printf 'FLIGHT_ALERT_PASSWORD=%s\n' "$PASSWORD" >> .env
+        env:
+          START_DATE: ${{ vars.START_DATE }}
+          END_DATE: ${{ vars.END_DATE }}
+          PRICE_THRESHOLD: ${{ vars.PRICE_THRESHOLD }}
+          DEPARTURE: ${{ vars.DEPARTURE }}
+          ARRIVAL: ${{ vars.ARRIVAL }}
+          EMAIL: ${{ secrets.FLIGHT_ALERT_EMAIL }}
+          PASSWORD: ${{ secrets.FLIGHT_ALERT_PASSWORD }}
 
       - name: Run flight tracker
         run: python -m flight_tracker --export-csv --verbose
