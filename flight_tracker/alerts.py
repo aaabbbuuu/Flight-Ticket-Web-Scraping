@@ -5,7 +5,7 @@ import smtplib
 from email.message import EmailMessage
 
 from .config import EmailConfig, FlightScraperConfig
-from .scraper import FLIGHT_SEARCH_URL
+from .scraper import GOOGLE_FLIGHTS_URL
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def send_email_alert(
         f"below your ${flight_conf.price_threshold} threshold.\n\n"
         f"Dates: {flight_conf.start_date:%Y-%m-%d} to "
         f"{flight_conf.end_date:%Y-%m-%d}\n\n"
-        f"Verify and book: {FLIGHT_SEARCH_URL}"
+        f"Verify and book: {GOOGLE_FLIGHTS_URL}"
     )
 
     msg = EmailMessage()

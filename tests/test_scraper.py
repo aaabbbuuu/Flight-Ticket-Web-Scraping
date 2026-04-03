@@ -13,8 +13,8 @@ class TestParsePrice:
     def test_with_decimals(self):
         assert _parse_price("$1,234.56") == 1234
 
-    def test_plain_number(self):
-        assert _parse_price("899") == 899
+    def test_dollar_no_comma(self):
+        assert _parse_price("$899") == 899
 
     def test_empty_string(self):
         assert _parse_price("") is None

@@ -4,18 +4,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Scheduled Check](https://img.shields.io/badge/CI-GitHub%20Actions-orange.svg)](.github/workflows/flight-check.yml)
 
-A Python CLI tool that scrapes flight prices using headless Chrome and sends you an email alert when a deal drops below your threshold. Run it locally, in Docker, or on a schedule via GitHub Actions.
+A Python CLI tool that scrapes flight prices from [Google Flights](https://www.google.com/travel/flights) using headless Chrome and sends you an email alert when a deal drops below your threshold. Run it locally, in Docker, or on a schedule via GitHub Actions.
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │  config.ini  │────▶│   Selenium   │────▶│  Price Check  │────▶│  Email Alert │
-│    + .env    │     │  (headless)  │     │  & CSV Export │     │  (Gmail SMTP)│
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+│    + .env    │     │  (headless   │     │  & CSV Export │     │  (Gmail SMTP)│
+│              │     │  Chrome)     │     │              │     │              │
+└──────────────┘     └──────┬───────┘     └──────────────┘     └──────────────┘
+                            │
+                   Google Flights
 ```
 
 ## Features
 
-- Headless browser scraping with Selenium + auto-managed ChromeDriver
+- Scrapes real prices from Google Flights via headless Chrome + Selenium
 - Configurable search parameters (airports, dates, price threshold)
 - Email alerts via Gmail SMTP when prices drop below threshold
 - CSV export of scraped results
@@ -145,13 +148,25 @@ flight-price-tracker/
 └── flight_tracker.py        # Legacy single-file entry point
 ```
 
+## How It Works
+
+The scraper automates Google Flights using Selenium:
+
+1. Opens Google Flights in headless Chrome
+2. Fills in departure/arrival airports via the autocomplete dialogs
+3. Selects travel dates from the calendar picker
+4. Clicks Search and waits for results
+5. Extracts all flight prices from the results page
+6. Sends an email alert if any price is at or below your threshold
+
 ## Adapting the Scraper
 
-The scraping logic in `flight_tracker/scraper.py` uses placeholder selectors. To use this with a real flight booking site:
+The scraper targets Google Flights out of the box. If Google changes their UI, you may need to update the CSS selectors in `flight_tracker/scraper.py`. The key selectors are:
 
-1. Update `FLIGHT_SEARCH_URL` with the target URL
-2. Inspect the site's HTML and update the `*_ID` / `*_CLASS` constants with real selectors
-3. Implement date-picker interaction in `scrape_flight_prices()` (marked with `FIXME`)
+- `input[aria-label="Where from?"]` / `input[aria-label="Where to? "]` — airport fields
+- `[role="dialog"][aria-label="Enter your origin"]` — airport autocomplete dialog
+- `[data-iso="YYYY-MM-DD"]` — calendar date buttons
+- Price extraction uses regex on the page body text
 
 ## Running Tests
 
